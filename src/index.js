@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ReactDOM from "react-dom";
 import Cropper from "react-easy-crop";
 import Slider from "@material-ui/lab/Slider";
@@ -18,9 +18,14 @@ const ORIENTATION_TO_ANGLE = {
 
 const Demo = ({ classes }) => {
   const [imageSrc, setImageSrc] = React.useState(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [width, setWidth] = useState(100);
+  const [height, setHeight] = useState(100);
+  const [maxWidth, setMaxWidth] = useState(null);
+  const [maxHeight, setMaxHeight] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0});
+  const [cropSize, setCropSize] = useState({ width, height });
   const [rotation, setRotation] = useState(0);
-  const [zoom, setZoom] = useState(2);
+  const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [croppedImage, setCroppedImage] = useState(null);
 
@@ -51,16 +56,51 @@ const Demo = ({ classes }) => {
       const file = e.target.files[0];
       let imageDataUrl = await readFile(file);
 
+      
+      //var image = images.item(0); 
+      //console.log(image); 
+
+
+      //console.log(`teste`, imageTest.attributes.height, imageTest.attributes.width  );
+
+      // var image = new Image();
+      // image.src = window.URL.createObjectURL( file );
+      // image.onload = function() {
+      //   setMaxHeight(this.height);
+      //   setMaxWidth(this.width);
+      //   console.log(`largura:  ${this.width} - altura: ${this.height}`);
+      //   return true;
+      // };
+
       // apply rotation if needed
       const orientation = await getOrientation(file);
       const rotation = ORIENTATION_TO_ANGLE[orientation];
       if (rotation) {
         imageDataUrl = await getRotatedImage(imageDataUrl, rotation);
       }
-
       setImageSrc(imageDataUrl);
     }
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      var list = document.getElementsByClassName('reactEasyCrop_Image')
+      if (list.length > 0) {
+        setMaxHeight(list[0].clientHeight);
+        setMaxWidth(list[0].clientWidth);
+      }
+    }, 5000);
+  })
+
+  async function changeWidth(vWidth) {
+    setWidth(vWidth);
+    setCropSize({width: vWidth, height});
+  }
+
+  async function changeHeight(vHeight) {
+    setHeight(vHeight);
+    setCropSize({width, height: vHeight}) 
+  }
 
   return (
     <div>
@@ -72,7 +112,8 @@ const Demo = ({ classes }) => {
               crop={crop}
               rotation={rotation}
               zoom={zoom}
-              aspect={4 / 3}
+              aspect={1 / 1}
+              cropSize={cropSize}
               onCropChange={setCrop}
               onRotationChange={setRotation}
               onCropComplete={onCropComplete}
@@ -91,7 +132,7 @@ const Demo = ({ classes }) => {
                 value={zoom}
                 min={1}
                 max={3}
-                step={0.1}
+                step={0.25}
                 aria-labelledby="Zoom"
                 classes={{ container: classes.slider }}
                 onChange={(e, zoom) => setZoom(zoom)}
@@ -102,16 +143,53 @@ const Demo = ({ classes }) => {
                 variant="overline"
                 classes={{ root: classes.sliderLabel }}
               >
-                Ratacionar
+                Rotacionar
               </Typography>
               <Slider
                 value={rotation}
                 min={0}
                 max={360}
-                step={1}
+                step={0.25}
                 aria-labelledby="Rotation"
                 classes={{ container: classes.slider }}
                 onChange={(e, rotation) => setRotation(rotation)}
+              />
+            </div>
+            
+            <div className={classes.sliderContainer}>
+              <Typography
+                variant="overline"
+                classes={{ root: classes.sliderLabel }}
+              >
+                Largura
+              </Typography>
+              <Slider
+                value={width}
+                min={1}
+                max={maxWidth}
+                step={1}
+                aria-labelledby="Largura"
+                classes={{ container: classes.slider }}
+                onChange={(e, width) => changeWidth(width)}
+              />
+            </div>
+
+            
+            <div className={classes.sliderContainer}>
+              <Typography
+                variant="overline"
+                classes={{ root: classes.sliderLabel }}
+              >
+                Altura
+              </Typography>
+              <Slider
+                value={height}
+                min={1}
+                max={maxHeight}
+                step={1}
+                aria-labelledby="Altura"
+                classes={{ container: classes.slider }}
+                onChange={(e, height) => changeHeight(height)}
               />
             </div>
             <Button
