@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect,  } from "react";
 import ReactDOM from "react-dom";
 import Cropper from "react-easy-crop";
 import Slider from "@material-ui/lab/Slider";
@@ -6,9 +6,9 @@ import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import { withStyles } from "@material-ui/core/styles";
 import { getOrientation } from "get-orientation/browser";
-import ImgDialog from "./ImgDialog";
 import { getCroppedImg, getRotatedImage } from "./canvasUtils";
 import { styles } from "./styles";
+import axios from 'axios';
 
 const ORIENTATION_TO_ANGLE = {
   "3": 180,
@@ -18,6 +18,7 @@ const ORIENTATION_TO_ANGLE = {
 
 const Demo = ({ classes }) => {
   const [imageSrc, setImageSrc] = React.useState(null);
+  const [file, setFile] = React.useState(null);
   const [width, setWidth] = useState(100);
   const [height, setHeight] = useState(100);
   const [maxWidth, setMaxWidth] = useState(null);
@@ -27,7 +28,8 @@ const Demo = ({ classes }) => {
   const [rotation, setRotation] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const [croppedImage, setCroppedImage] = useState(null);
+  const [croppedImage, setCroppedImage] = useState('');
+  const [text, setText] = useState('');
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -35,25 +37,44 @@ const Demo = ({ classes }) => {
 
   const showCroppedImage = useCallback(async () => {
     try {
-      const croppedImage = await getCroppedImg(
+      const cropped = await getCroppedImg(
         imageSrc,
         croppedAreaPixels,
         rotation
       );
-      console.log("donee", { croppedImage });
-      setCroppedImage(croppedImage);
+
+      console.log(cropped)
+      setCroppedImage(cropped)
+            
+      let config = {
+        header : {
+          'Content-Type' : 'multipart/form-data'
+        }
+      }
+
+      const data = new FormData()
+    
+      data.append('image', cropped)
+
+      axios.post('http://localhost:5000/upload', data, config).then( 
+        (res) => { 
+          setText(res.data.message)
+        },
+        (error) => { 
+          console.log(error)
+        }
+      );
+
     } catch (e) {
       console.error(e);
     }
   }, [imageSrc, croppedAreaPixels, rotation]);
 
-  const onClose = useCallback(() => {
-    setCroppedImage(null);
-  }, []);
 
   const onFileChange = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+      setFile(file)
       let imageDataUrl = await readFile(file);
 
       
@@ -83,7 +104,7 @@ const Demo = ({ classes }) => {
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    setInterval(() => {
       var list = document.getElementsByClassName('reactEasyCrop_Image')
       if (list.length > 0) {
         setMaxHeight(list[0].clientHeight);
@@ -201,7 +222,13 @@ const Demo = ({ classes }) => {
               Selecionar Documento
             </Button>
           </div>
-          <ImgDialog img={croppedImage} onClose={onClose} />
+          <div>
+          {
+            (text !== '') ? 
+            (<p>{text}</p>) : 
+            (<></>)
+          }
+          </div>
         </React.Fragment>
       ) : (
         <input type="file" onChange={onFileChange} accept="image/*" />
